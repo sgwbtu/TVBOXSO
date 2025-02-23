@@ -28,7 +28,7 @@ jobs:
             repoUrl: https://github.com/takagen99/Box
             branchName: main
             javaVersion: 17
-    env:
+   # env:
       # 已移除蓝奏云相关环境变量（可根据需要保留）
       # ylogin: ${{ secrets.YLOGIN }}
       # phpdisk_info: ${{ secrets.PHPDISK_INFO }}
