@@ -3,9 +3,6 @@ name: Build2
 on:
   schedule:
     - cron: 6 */8 * * *
-  #  push:
-  #    branches:
-  #      - main
   workflow_dispatch:
     inputs:
       rebuild:
@@ -28,11 +25,6 @@ jobs:
             repoUrl: https://github.com/takagen99/Box
             branchName: main
             javaVersion: 17
-   # env:
-      # 已移除蓝奏云相关环境变量（可根据需要保留）
-      # ylogin: ${{ secrets.YLOGIN }}
-      # phpdisk_info: ${{ secrets.PHPDISK_INFO }}
-      # lanzou_folder_id: 5848262
 
     steps:
       - name: Checkout
@@ -138,6 +130,33 @@ jobs:
             fi
           done
 
+      - name: Generate version.json
+        if: ${{ env.commit }}
+        working-directory: TVBoxOSC
+        run: |
+          echo "[" > apk/version.json
+          counter=0
+          for apk in apk/*.apk; do
+            [ -f "$apk" ] || continue
+            sha256=$(sha256sum "$apk" | awk '{print $1}')
+            filename=$(basename "$apk")
+            date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            
+            if [ $counter -ne 0 ]; then
+              echo "," >> apk/version.json
+            fi
+            cat <<EOF >> apk/version.json
+            {
+              "name": "$filename",
+              "date": "$date",
+              "sha256": "$sha256"
+            }
+EOF
+            counter=$((counter+1))
+          done
+          echo "]" >> apk/version.json
+          jq . apk/version.json > apk/version.tmp && mv apk/version.tmp apk/version.json
+
       - name: Write Update Changelog
         if: ${{ env.commit && !inputs.rebuild }}
         run: |
@@ -162,6 +181,7 @@ jobs:
           files: |
             TVBoxOSC/apk/*
             TVBoxOSC/${{ matrix.userName }}_${{ env.commit_id }}_src.zip
+            TVBoxOSC/apk/version.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
