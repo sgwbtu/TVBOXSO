@@ -33,7 +33,7 @@ jobs:
       ylogin: ${{ secrets.YLOGIN }}
       phpdisk_info: ${{ secrets.PHPDISK_INFO }}
       # 蓝奏云里的文件夹ID
-      lanzou_folder_id: 1802744
+      lanzou_folder_id: 11594849
 
     steps:
       - name: Checkout
