@@ -124,17 +124,26 @@ jobs:
         run: |
           rm -rf apk/
           mkdir -p apk/
+          # 初始化或清空 version.txt
+          > apk/version.txt
           for file in `find . -name "*.apk" -print`; do
             filename=$(basename "$file")
             if [[ $filename =~ "debug" ]] ; then
               echo "ignore: $file"
             elif [[ $filename =~ "release" ]] ; then
+              echo "move and rename: $file"
               match_name=${filename%.*}
               match_name=${match_name##*release}
-              new_name="TVBox${match_name}_${{ matrix.userName }}_${{ env.tag }}.apk"
+              new_name="TVBox${match_name}_${{ matrix.userName }}.apk"
+              echo "new_name: $new_name"
               mv "$file" "apk/$new_name"
+              # 将 new_name 写入 version.txt
+              echo "$new_name" >> apk/version.txt
             else
+              echo "only move: $file"
               mv "$file" apk/
+              # 如果需要记录所有非 debug 的 APK 名称，取消下面注释
+              # echo "$filename" >> apk/version.txt
             fi
           done
 
@@ -142,22 +151,16 @@ jobs:
         if: ${{ env.commit && !inputs.rebuild }}
         run: |
           cd actions
+          # myLastCommit=`git log --oneline |grep -o '[a-z0-9]\{40\}' |head -1`
+          # myLastCommit=$(grep "${{ matrix.userName }}" README.md |grep -o '[a-z0-9]\{40\}')
           myLastCommit=$(grep '[a-z0-9]\{40\}' ./log/${{ matrix.userName }}.txt)
           echo $myLastCommit
           cd ../TVBoxOSC
-          
-          # 获取软件名称（假设从build.gradle中提取）
-          APP_NAME=$(grep "applicationId" app/build.gradle | awk -F\" '{print $2}' | awk -F. '{print $NF}')
-          echo "$APP_NAME" > name.txt  # 写入软件名称
-          
-          # 查找APK文件并写入列表（假设生成两个APK）
-          find app/build/outputs/apk -name "*.apk" -printf "%f\n" > apks.txt  # 写入APK名称
-          
           export LESSCHARSET=utf-8
           if [ "${{ env.commit }}" == "${myLastCommit}" ]; then
-            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }} -1 | sed -e "s# \{2,\}#\n#g" -e "/^Merge $pull\|branch\|remote$/d" -e '/^$/d' | cat -n | sort -k2,2 -k1,1n | uniq -f1 | sort -k1,1n | cut -f2-)
+            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }} -1 |sed -e "s# \{2,\}#\n#g" -e "/^Merge \(pull\|branch\|remote\)/d" -e '/^$/d' |cat -n |sort -k2,2 -k1,1n |uniq -f1 |sort -k1,1n |cut -f2- )
           else
-            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }}...${myLastCommit:0:7} | sed -e "s# \{2,\}#\n#g" -e "/^Merge $pull\|branch\|remote$/d" -e '/^$/d' | cat -n | sort -k2,2 -k1,1n | uniq -f1 | sort -k1,1n | cut -f2-)
+            COMMIT_MESSAGE=$(git log --pretty=format:%B ${{ env.commit_id }}...${myLastCommit:0:7} |sed -e "s# \{2,\}#\n#g" -e "/^Merge \(pull\|branch\|remote\)/d" -e '/^$/d' |cat -n |sort -k2,2 -k1,1n |uniq -f1 |sort -k1,1n |cut -f2- )
           fi
           echo -e "Credit: [${{ matrix.userName }}](${{ matrix.repoUrl }})\n\`\`\`\n${COMMIT_MESSAGE}\n\`\`\`" > Changelog.txt
           echo "$COMMIT_MESSAGE" > desc.txt
