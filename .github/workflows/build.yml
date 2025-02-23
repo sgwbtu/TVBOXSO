@@ -140,7 +140,8 @@ jobs:
               echo "move and rename: $file"
               match_name=${filename%.*}
               match_name=${match_name##*release}
-              new_name="TVBox${match_name}_${{ matrix.userName }}_${{ env.tag }}.apk"
+             # new_name="TVBox${match_name}_${{ matrix.userName }}_${{ env.tag }}.apk"
+              new_name="TVBox${match_name}_${{ matrix.userName }}}.apk"
               echo "new_name: $new_name"
               mv "$file" "apk/$new_name"
             else
